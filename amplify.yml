@@ -3,10 +3,10 @@ frontend:
   phases:
     preBuild:
       commands:
-        - cd frontend/spare-parts-hub && npm ci
+        - cd $AWS_SRC_DIR/frontend/spare-parts-hub && npm ci
     build:
       commands:
-        - cd frontend/spare-parts-hub && npm run build
+        - cd $AWS_SRC_DIR/frontend/spare-parts-hub && npm run build
   artifacts:
     baseDirectory: frontend/spare-parts-hub/.next
     files:
