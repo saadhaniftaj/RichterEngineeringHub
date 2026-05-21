@@ -1,0 +1,19 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd frontend/spare-parts-hub
+        - npm ci
+    build:
+      commands:
+        - cd frontend/spare-parts-hub
+        - npm run build
+  artifacts:
+    baseDirectory: frontend/spare-parts-hub/.next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - frontend/spare-parts-hub/node_modules/**/*
+      - frontend/spare-parts-hub/.next/cache/**/*
