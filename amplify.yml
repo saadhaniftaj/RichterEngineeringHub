@@ -1,17 +1,19 @@
 version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - if [ -d "frontend/spare-parts-hub" ]; then cd frontend/spare-parts-hub; fi && npm ci
-    build:
-      commands:
-        - if [ -d "frontend/spare-parts-hub" ]; then cd frontend/spare-parts-hub; fi && npm run build
-  artifacts:
-    baseDirectory: frontend/spare-parts-hub/.next
-    files:
-      - "**/*"
-  cache:
-    paths:
-      - frontend/spare-parts-hub/node_modules/**/*
-      - frontend/spare-parts-hub/.next/cache/**/*
+applications:
+  - appRoot: frontend/spare-parts-hub
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - "**/*"
+      cache:
+        paths:
+          - node_modules/**/*
+          - .next/cache/**/*
