@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SignatureV4 } from "@smithy/signature-v4";
-import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { Sha256 } from "@aws-crypto/sha256-js";
 
-const REGION      = process.env.AWS_REGION || "us-east-1";
+// Amplify blocks AWS_* env vars — use APP_* equivalents
+const REGION      = process.env.APP_REGION || "eu-central-1";
 const OS_ENDPOINT = process.env.OPENSEARCH_ENDPOINT || "";
 const OS_INDEX    = process.env.OPENSEARCH_INDEX || "spare_parts";
+const ACCESS_KEY  = process.env.APP_ACCESS_KEY_ID || "";
+const SECRET_KEY  = process.env.APP_SECRET_ACCESS_KEY || "";
 
 async function signedSearch(body: object): Promise<Response> {
-  const url         = `https://${OS_ENDPOINT}/${OS_INDEX}/_search`;
-  const bodyStr     = JSON.stringify(body);
-  const credentials = await defaultProvider()();
-  const signer      = new SignatureV4({ credentials, region: REGION, service: "es", sha256: Sha256 });
-  const parsedUrl   = new URL(url);
+  const url     = `https://${OS_ENDPOINT}/${OS_INDEX}/_search`;
+  const bodyStr = JSON.stringify(body);
+  const creds   = { accessKeyId: ACCESS_KEY, secretAccessKey: SECRET_KEY };
+  const signer  = new SignatureV4({ credentials: creds, region: REGION, service: "es", sha256: Sha256 });
+  const parsedUrl = new URL(url);
 
   const signed = await signer.sign({
     method: "POST",
@@ -42,8 +44,6 @@ export async function GET(req: NextRequest) {
   // NOT indexed by design. They are document decoration, not searchable parts data.
 
   // ── Tier 1: Exact / phrase match ──────────────────────────────────────────
-  // match_phrase on raw_row_text carries the highest boost (30) so any row
-  // containing the exact search string always floats to the top.
   const exactQuery = {
     size,
     query: {
@@ -75,9 +75,6 @@ export async function GET(req: NextRequest) {
   };
 
   // ── Tier 2: Fuzzy / closest match ─────────────────────────────────────────
-  // Dynamic minimum_should_match based on word count:
-  //   Single word/token  → 1: short part numbers like "0026" still return results
-  //   Multi-word query   → 2: filters paragraph noise that only hits one n-gram
   const wordCount = q.trim().split(/\s+/).length;
   const minMatch  = wordCount > 1 ? 2 : 1;
 

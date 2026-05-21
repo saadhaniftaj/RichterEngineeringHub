@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION || "us-east-1",
-});
+// Amplify blocks AWS_* env vars — use APP_* equivalents
+const REGION     = process.env.APP_REGION || "eu-central-1";
+const BUCKET     = process.env.APP_S3_BUCKET || "spare-parts-docs-626185424005";
+const ACCESS_KEY = process.env.APP_ACCESS_KEY_ID || "";
+const SECRET_KEY = process.env.APP_SECRET_ACCESS_KEY || "";
 
-const BUCKET = process.env.AWS_S3_BUCKET || "spare-parts-docs-185529490317";
+const s3 = new S3Client({
+  region: REGION,
+  credentials: ACCESS_KEY && SECRET_KEY
+    ? { accessKeyId: ACCESS_KEY, secretAccessKey: SECRET_KEY }
+    : undefined,
+});
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -25,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     // Generate a temporary 5-minute read URL
     let downloadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
-    
+
     // Append PDF page anchor
     if (page) {
       downloadUrl += `#page=${page}`;

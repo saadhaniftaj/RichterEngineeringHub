@@ -2,17 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { DynamoDBClient, ScanCommand, DeleteItemCommand } from "@aws-sdk/client-dynamodb";
 import { SignatureV4 } from "@smithy/signature-v4";
-import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { Sha256 } from "@aws-crypto/sha256-js";
 
-const REGION      = process.env.AWS_REGION || "us-east-1";
-const BUCKET      = process.env.AWS_S3_BUCKET || "spare-parts-docs-185529490317";
+// Amplify blocks AWS_* env vars — use APP_* equivalents
+const REGION      = process.env.APP_REGION || "eu-central-1";
+const BUCKET      = process.env.APP_S3_BUCKET || "spare-parts-docs-626185424005";
 const DYNAMO_TABLE = process.env.DYNAMODB_TABLE || "spare-parts-doc-status";
 const OS_ENDPOINT = process.env.OPENSEARCH_ENDPOINT || "";
 const OS_INDEX    = process.env.OPENSEARCH_INDEX || "spare_parts";
+const ACCESS_KEY  = process.env.APP_ACCESS_KEY_ID || "";
+const SECRET_KEY  = process.env.APP_SECRET_ACCESS_KEY || "";
 
-const s3     = new S3Client({ region: REGION });
-const dynamo = new DynamoDBClient({ region: REGION });
+const credentials = ACCESS_KEY && SECRET_KEY
+  ? { accessKeyId: ACCESS_KEY, secretAccessKey: SECRET_KEY }
+  : undefined;
+
+const s3     = new S3Client({ region: REGION, credentials });
+const dynamo = new DynamoDBClient({ region: REGION, credentials });
 
 // ── GET: List all docs (S3 + DynamoDB join) ───────────────────────────────────
 export async function GET() {
@@ -98,64 +104,29 @@ export async function DELETE(req: NextRequest) {
   }
 
   // 3. Delete all OpenSearch documents for this s3_key
-  try {
-    const deleteByQuery = {
-      query: {
-        term: { "s3_key.keyword": key },
-      },
-    };
+  if (OS_ENDPOINT) {
+    try {
+      const creds = { accessKeyId: ACCESS_KEY, secretAccessKey: SECRET_KEY };
+      const signer = new SignatureV4({ credentials: creds, region: REGION, service: "es", sha256: Sha256 });
+      const url    = `https://${OS_ENDPOINT}/${OS_INDEX}/_delete_by_query`;
+      const parsedUrl = new URL(url);
+      const body   = JSON.stringify({ query: { term: { "s3_key.keyword": key } } });
 
-    // Use a fallback if .keyword field doesn't exist
-    const deleteByQueryFallback = {
-      query: {
-        match: { s3_key: key },
-      },
-    };
-
-    const credentials = await defaultProvider()();
-    const signer      = new SignatureV4({ credentials, region: REGION, service: "es", sha256: Sha256 });
-    const url         = `https://${OS_ENDPOINT}/${OS_INDEX}/_delete_by_query`;
-    const parsedUrl   = new URL(url);
-    const body        = JSON.stringify(deleteByQuery);
-
-    const signed = await signer.sign({
-      method: "POST",
-      hostname: parsedUrl.hostname,
-      path: parsedUrl.pathname,
-      protocol: parsedUrl.protocol,
-      headers: { "Content-Type": "application/json", host: parsedUrl.hostname },
-      body,
-    });
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: signed.headers as Record<string, string>,
-      body,
-    });
-
-    if (!res.ok) {
-      // Try fallback match query
-      const body2   = JSON.stringify(deleteByQueryFallback);
-      const signed2 = await signer.sign({
+      const signed = await signer.sign({
         method: "POST",
         hostname: parsedUrl.hostname,
         path: parsedUrl.pathname,
         protocol: parsedUrl.protocol,
         headers: { "Content-Type": "application/json", host: parsedUrl.hostname },
-        body: body2,
+        body,
       });
-      await fetch(url, {
-        method: "POST",
-        headers: signed2.headers as Record<string, string>,
-        body: body2,
-      });
-    }
 
-    const data = await res.json().catch(() => ({}));
-    console.log("OpenSearch deleted:", data.deleted, "docs for key:", key);
-  } catch (err) {
-    console.error("OpenSearch delete error:", err);
-    errors.push("Search index cleanup failed");
+      await fetch(url, { method: "POST", headers: signed.headers as Record<string, string>, body });
+      console.log("OpenSearch delete_by_query sent for key:", key);
+    } catch (err) {
+      console.error("OpenSearch delete error:", err);
+      errors.push("Search index cleanup failed");
+    }
   }
 
   if (errors.length > 0) {

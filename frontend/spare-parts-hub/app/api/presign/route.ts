@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION || "us-east-1",
-  // Credentials auto-resolved from ~/.aws/credentials or IAM role
-});
+// Amplify blocks env vars prefixed with AWS_ (reserved by the runtime).
+// We use APP_* equivalents set in the Amplify Console.
+const REGION = process.env.APP_REGION || "eu-central-1";
+const BUCKET = process.env.APP_S3_BUCKET || "spare-parts-docs-626185424005";
+const ACCESS_KEY = process.env.APP_ACCESS_KEY_ID || "";
+const SECRET_KEY = process.env.APP_SECRET_ACCESS_KEY || "";
 
-const BUCKET = process.env.AWS_S3_BUCKET || "spare-parts-docs-185529490317";
+const s3 = new S3Client({
+  region: REGION,
+  credentials: ACCESS_KEY && SECRET_KEY
+    ? { accessKeyId: ACCESS_KEY, secretAccessKey: SECRET_KEY }
+    : undefined, // fallback to IAM role if running locally
+});
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
