@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.next/
+.cache/
+
+# Lambda build artifacts
+lambda/package/
+lambda/build/
+lambda/completion_layer.zip
+lambda/kickoff.zip
+lambda/completion.zip
+lambda/lambda_package.zip
+lambda/*.zip
+
+# Environment
+.env.local
+.env.*.local
+.env
+
+# AWS / secrets
+*.pem
+*.json.backup
+.aws/
+
+# OS
+.DS_Store
+*.swp
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/

@@ -1,0 +1,44 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3ReadAccess",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": "arn:aws:s3:::spare-parts-docs-185529490317/*"
+    },
+    {
+      "Sid": "TextractAccess",
+      "Effect": "Allow",
+      "Action": ["textract:AnalyzeDocument"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "OpenSearchAccess",
+      "Effect": "Allow",
+      "Action": [
+        "es:ESHttpPost",
+        "es:ESHttpPut",
+        "es:ESHttpGet",
+        "es:ESHttpHead"
+      ],
+      "Resource": "arn:aws:es:us-east-1:185529490317:domain/spare-parts-search/*"
+    },
+    {
+      "Sid": "CloudWatchLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:us-east-1:185529490317:*"
+    },
+    {
+      "Sid": "S3PutForPresign",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject"],
+      "Resource": "arn:aws:s3:::spare-parts-docs-185529490317/*"
+    }
+  ]
+}
