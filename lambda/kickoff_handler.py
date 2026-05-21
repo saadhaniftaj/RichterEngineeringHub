@@ -54,7 +54,7 @@ def handler(event, context):
                 DocumentLocation={
                     "S3Object": {"Bucket": bucket, "Name": key}
                 },
-                FeatureTypes=["TABLES", "FORMS"],
+                FeatureTypes=["TABLES"],
                 NotificationChannel={
                     "SNSTopicArn": SNS_TOPIC_ARN,
                     "RoleArn": os.environ["TEXTRACT_SNS_ROLE_ARN"],
