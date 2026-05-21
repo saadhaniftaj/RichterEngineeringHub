@@ -8,6 +8,13 @@ applications:
             - npm ci
         build:
           commands:
+            - echo "APP_ACCESS_KEY_ID=$APP_ACCESS_KEY_ID" >> .env.production
+            - echo "APP_SECRET_ACCESS_KEY=$APP_SECRET_ACCESS_KEY" >> .env.production
+            - echo "APP_REGION=$APP_REGION" >> .env.production
+            - echo "APP_S3_BUCKET=$APP_S3_BUCKET" >> .env.production
+            - echo "DYNAMODB_TABLE=$DYNAMODB_TABLE" >> .env.production
+            - echo "OPENSEARCH_ENDPOINT=$OPENSEARCH_ENDPOINT" >> .env.production
+            - echo "OPENSEARCH_INDEX=$OPENSEARCH_INDEX" >> .env.production
             - npm run build
       artifacts:
         baseDirectory: .next
